@@ -10,7 +10,7 @@ CORS(app)
 
 DATABASE = 'nnnlocker.db'
 
-# --- Database Functions ---
+
 
 def get_db():
     """
@@ -20,7 +20,7 @@ def get_db():
     db = getattr(g, '_database', None)
     if db is None:
         db = g._database = sqlite3.connect(DATABASE)
-        db.row_factory = sqlite3.Row # Allows accessing columns by name
+        db.row_factory = sqlite3.Row 
     return db
 
 @app.teardown_appcontext
@@ -44,14 +44,13 @@ def init_db():
     print(f"--- '{DATABASE}' file created. ---")
 
 
-# --- NEW FIX: FLASK CLI COMMAND ---
+
 @app.cli.command('init-db')
 def init_db_command():
     """Creates the database tables. Run this with `flask init-db`"""
     init_db()
     print('Initialized the database.')
 
-# --- API Endpoints ---
 
 @app.route('/get-stats', methods=['GET'])
 def get_stats():
@@ -65,14 +64,14 @@ def get_stats():
     profile = conn.execute('SELECT streak_days, fail_count FROM user_profile WHERE id = 1').fetchone()
     
     if profile is None:
-        # This is a fallback for the very first run
+       
         return jsonify({
             "streakDays": 0,
             "failCount": 0,
             "chart": {"labels": [], "data": []}
         })
 
-    # Get chart data (fails per day for the last 7 days)
+
     rows = conn.execute('''
         SELECT 
             DATE(timestamp) as date, 
@@ -107,11 +106,11 @@ def log_fail_event():
     conn = get_db()
     conn.execute('BEGIN')
     try:
-        # Log the specific event
+        
         conn.execute('INSERT INTO fail_events (reason, video_url) VALUES (?, ?)', 
                      ('User manual fail report', request.json.get('video_url', '')))
         
-        # Update the user_profile (reset streak, increment fail count)
+        
         conn.execute('''
             UPDATE user_profile 
             SET 
@@ -149,7 +148,7 @@ def log_success():
         
     return jsonify({"status": "success", "message": "Streak updated"}), 201
 
-# --- AI Coach Endpoint (Ollama) ---
+
 
 @app.route('/coach/message', methods=['POST'])
 def coach_message():
@@ -163,15 +162,15 @@ def coach_message():
     user_input = data.get("user_input")
     streak = data.get("streak", 0)
     
-    # System prompt to guide the AI
+    
     system_prompt = "You are a supportive but assertive accountability coach. A user is on a focus and discipline challenge. Respond to their message in 2-3 concise sentences. Give them a short, actionable tip. Do not be overly friendly."
     
-    # Ollama's API endpoint (runs on http://127.0.0.1:11434 by default)
+    
     OLLAMA_URL = "http://127.0.0.1:11434/api/chat"
 
     try:
         response = requests.post(OLLAMA_URL, json={
-            "model": "llama3.1:8b", # The model you downloaded
+            "model": "llama3.1:8b", 
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": f"I'm on a {streak}-day streak. {user_input}"}
@@ -179,7 +178,7 @@ def coach_message():
             "stream": False
         })
         
-        response.raise_for_status() # Raise an exception for bad status codes
+        response.raise_for_status() 
         ollama_data = response.json()
         
         coach_reply = ollama_data.get('message', {}).get('content', "I'm processing that. Stay strong.")
@@ -197,7 +196,5 @@ def coach_message():
             "coach_reply": "I had an error processing that. Let's just refocus. What's your next small step?"
         })
 
-# --- Database Schema File ---
-# We need a schema.sql file for the init_db function to read.
-# I will create this file for you.
+
 
